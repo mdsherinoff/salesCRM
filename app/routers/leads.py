@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models import Lead, LeadCreate, LeadResponse, APIResponse
 from typing import List
 from datetime import date
+from app.messaging import publish
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
@@ -26,7 +27,7 @@ def get_lead(lead_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=APIResponse)
 def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
-    """Create a new lead."""
+    """Create a new lead and publish a lead.created event."""
     new_lead = Lead(
         **lead.model_dump(),
         created_date=date.today()
@@ -34,6 +35,20 @@ def create_lead(lead: LeadCreate, db: Session = Depends(get_db)):
     db.add(new_lead)
     db.commit()
     db.refresh(new_lead)
+
+    # Publish event to RabbitMQ
+    publish(
+        routing_key="lead.created",
+        message={
+            "event":        "lead.created",
+            "lead_id":      new_lead.lead_id,
+            "lead_name":    new_lead.lead_name,
+            "company_name": new_lead.company_name,
+            "source":       new_lead.source,
+            "status":       new_lead.status
+        }
+    )
+
     return APIResponse(
         success=True,
         message="Lead created successfully",

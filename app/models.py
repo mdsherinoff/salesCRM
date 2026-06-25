@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import date
 from app.database import Base
-
+from sqlalchemy import Column, Integer, String, DateTime, JSON
+from datetime import datetime
 
 # ─── SQLAlchemy ORM Models (map to DB tables) ────────────────────────────────
 
@@ -110,3 +111,15 @@ class APIResponse(BaseModel):
     success: bool
     message: str
     data:    Optional[dict] = None
+
+
+class EventLog(Base):
+    __tablename__ = "event_log"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    event_type   = Column(String(100), nullable=False)
+    routing_key  = Column(String(100))
+    payload      = Column(JSON)
+    processed_at = Column(DateTime, default=datetime.utcnow)
+    status       = Column(String(20), default="processed")
+    error        = Column(String(500), nullable=True)

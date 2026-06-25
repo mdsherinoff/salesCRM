@@ -1,33 +1,35 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.database import engine, Base
-from app.routers import leads
+from app.database  import engine, Base
+from app.messaging  import connect_rabbitmq, disconnect_rabbitmq
+from app.routers   import leads, events
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Creates all tables on startup if they don't already exist
+    # Startup
     Base.metadata.create_all(bind=engine)
     print("✓ Database tables ready")
+    connect_rabbitmq()
     yield
-    # Nothing to clean up — SQLAlchemy manages the connection pool
+    # Shutdown
+    disconnect_rabbitmq()
 
 
 app = FastAPI(
     title="Sales CRM API",
     description="FastAPI backend for the Oracle APEX Sales Pipeline CRM",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan
 )
 
-# Register routers
 app.include_router(leads.router)
+app.include_router(events.router)
 
 
 @app.get("/")
 def root():
     return {"message": "Sales CRM API is running"}
-
 
 @app.get("/health")
 def health():
