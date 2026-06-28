@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from app.database       import engine, Base
 from app.messaging      import connect_rabbitmq, disconnect_rabbitmq
 from app.kafka_producer import get_producer, close_producer
-from app.routers        import leads, events
+from app.routers        import leads, events, audit
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app = FastAPI(
 
 app.include_router(leads.router)
 app.include_router(events.router)
+app.include_router(audit.router)
 
 
 @app.get("/")
